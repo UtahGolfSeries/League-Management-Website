@@ -74,7 +74,7 @@ export default function LoginPage() {
           disabled={loading}
           style={{
             ...styles.loginBtn,
-            background: loading ? '#999' : '#2e7d32'
+            background: loading ? '#999' : '#eecb33'
           }}
         >
           {loading ? "Verifying..." : "Sign In"}
@@ -108,7 +108,7 @@ const styles = {
     boxSizing: 'border-box' as const,
     color: '#000',
     backgroundColor: '#fff',
-    outlineColor: '#2e7d32'
+    outlineColor: '#eecb33'
   },
   loginBtn: { 
     width: '100%', 

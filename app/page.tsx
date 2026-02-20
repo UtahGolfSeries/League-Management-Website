@@ -32,14 +32,12 @@ export default function HomePage() {
             
             {/* CARD 1: WALLET SNAPSHOT */}
             <Link href="/account" style={styles.card}>
-              <span style={styles.cardIcon}>💰</span>
               <h3 style={styles.cardTitle}>My Wallet</h3>
               <p style={styles.cardDetail}>View your tournament winnings and clubhouse credit.</p>
             </Link>
 
             {/* CARD 2: TOURNAMENTS / SCHEDULE */}
 <Link href={user.role === 'admin' ? "/admin/leagues" : "/schedule"} style={styles.card}>
-  <span style={styles.cardIcon}>🏆</span>
   <h3 style={styles.cardTitle}>{user.role === 'admin' ? 'Manage Rounds' : 'Schedule'}</h3>
   <p style={styles.cardDetail}>
     {user.role === 'admin' 
@@ -50,7 +48,6 @@ export default function HomePage() {
 
             {/* CARD 3: STANDINGS */}
             <Link href="/standings" style={styles.card}>
-              <span style={styles.cardIcon}>📊</span>
               <h3 style={styles.cardTitle}>Leaderboard</h3>
               <p style={styles.cardDetail}>See where you rank against the rest of the field.</p>
             </Link>
@@ -98,7 +95,7 @@ const styles = {
   heroActions: { display: 'flex', gap: '15px', justifyContent: 'center' },
   
   // BUTTONS
-  primaryBtn: { background: '#2e7d32', color: '#fff', padding: '14px 28px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' as const, fontSize: '16px', width: '200pt' },
+  primaryBtn: { background: '#eecb33', color: '#fff', padding: '14px 28px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' as const, fontSize: '16px', width: '200pt' },
   secondaryBtn: { background: 'rgba(255,255,255,0.2)', color: '#fff', padding: '14px 28px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' as const, fontSize: '16px', border: '1px solid #fff', width: '200pt' },
 
   // DASHBOARD STYLES
@@ -117,7 +114,7 @@ const styles = {
     cursor: 'pointer'
   },
   cardIcon: { fontSize: '40px', display: 'block', marginBottom: '15px' },
-  cardTitle: { color: '#2e7d32', fontSize: '18px', fontWeight: 'bold' as const, marginBottom: '10px' },
+  cardTitle: { color: '#eecb33', fontSize: '18px', fontWeight: 'bold' as const, marginBottom: '10px' },
   cardDetail: { color: '#666', fontSize: '14px', lineHeight: '1.5' },
 
   // INFO STYLES

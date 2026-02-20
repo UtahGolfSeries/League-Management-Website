@@ -143,7 +143,7 @@ export default function Standings() {
                         ) : (
                           <>
                             {/* Swapped: Points on Left, Events on Right */}
-                            <th style={{...styles.th, textAlign: 'center', color: '#2e7d32'}}>Total Pts</th>
+                            <th style={{...styles.th, textAlign: 'center', color: '#eecb33'}}>Total Pts</th>
                             <th style={{...styles.th, textAlign: 'center'}}>Events Played</th>
                           </>
                         )}
@@ -163,7 +163,7 @@ export default function Standings() {
                           ) : (
                             <>
                               {/* Swapped Data Cells */}
-                              <td style={{...styles.td, textAlign: 'center', fontWeight: '900', color: '#2e7d32', backgroundColor: '#f9fcf9'}}>
+                              <td style={{...styles.td, textAlign: 'center', fontWeight: '900', color: '#eecb33', backgroundColor: '#f5f5e8'}}>
                                 {entry.totalPoints}
                               </td>
                               <td style={{...styles.td, textAlign: 'center', color: '#888'}}>
@@ -189,7 +189,7 @@ const styles = {
   container: { padding: '20px', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' as const },
   headerControls: { display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '8px' },
   toggleGroup: { display: 'flex', background: '#333', borderRadius: '6px', padding: '2px' },
-  activeToggle: { background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px 12px', fontSize: '12px', fontWeight: 'bold' as const, cursor: 'pointer' },
+  activeToggle: { background: '#eecb33', color: '#fff', border: 'none', borderRadius: '4px', padding: '5px 12px', fontSize: '12px', fontWeight: 'bold' as const, cursor: 'pointer' },
   inactiveToggle: { background: 'transparent', color: '#bbb', border: 'none', borderRadius: '4px', padding: '5px 12px', fontSize: '12px', cursor: 'pointer' },
   weekSelect: { padding: '6px', borderRadius: '6px', border: '1px solid #444', backgroundColor: '#333', color: '#fff', fontSize: '12px' },
   section: { marginBottom: '30px' },
@@ -200,6 +200,6 @@ const styles = {
   th: { width: '150px', padding: '12px 15px', fontSize: '10px', color: '#999', textAlign: 'left' as const, textTransform: 'uppercase' as const, fontWeight: 'bold' as const },
   td: { padding: '12px 15px', borderBottom: '1px solid #eee', fontSize: '14px', color: '#333' },
   tr: { background: '#fff' },
-  rankCell: { padding: '12px 15px', borderBottom: '1px solid #eee', fontWeight: 'bold' as const, color: '#2e7d32', textAlign: 'center' as const },
+  rankCell: { padding: '12px 15px', borderBottom: '1px solid #eee', fontWeight: 'bold' as const, color: '#eecb33', textAlign: 'center' as const },
   playerCell: { padding: '12px 15px', borderBottom: '1px solid #eee', fontWeight: 'bold' as const, color: '#000' }
 }

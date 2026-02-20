@@ -186,7 +186,7 @@ export default function RosterManagement() {
                 </td>
                 <td style={{ ...styles.td, textAlign: 'center' }}>
                   <div style={styles.balanceContainer}>
-                    <span style={{ fontSize: '15px', fontWeight: 'bold', color: m.balance < 0 ? '#d32f2f' : '#2e7d32', minWidth: '70px' }}>
+                    <span style={{ fontSize: '15px', fontWeight: 'bold', color: m.balance < 0 ? '#d32f2f' : '#eecb33', minWidth: '70px' }}>
                       ${(m.balance || 0).toFixed(2)}
                     </span>
                     <button onClick={() => openWallet(m)} style={styles.walletBtn}>Transaction</button>
@@ -195,7 +195,7 @@ export default function RosterManagement() {
                 <td style={{ ...styles.td, textAlign: 'center' }}>
                   {updatingId === m.id ? 
                     <span style={{color: '#666', fontSize: '11px'}}>Saving...</span> : 
-                    <span style={{color: '#2e7d32', fontSize: '11px', fontWeight: 'bold'}}>Saved</span>
+                    <span style={{color: '#eecb33', fontSize: '11px', fontWeight: 'bold'}}>Saved</span>
                   }
                 </td>
               </tr>
@@ -211,7 +211,7 @@ export default function RosterManagement() {
             
             <div style={styles.balanceDisplay}>
               <label style={styles.label}>Current Balance</label>
-              <p style={{fontSize: '28px', fontWeight: 'bold', color: '#2e7d32', margin: '5px 0 0 0'}}>
+              <p style={{fontSize: '28px', fontWeight: 'bold', color: '#eecb33', margin: '5px 0 0 0'}}>
                 ${(members.find(m => m.id === selectedMember.id)?.balance || 0).toFixed(2)}
               </p>
             </div>
@@ -271,7 +271,7 @@ export default function RosterManagement() {
 const styles = {
   container: { padding: '20px', maxWidth: '950px', margin: '0 auto', fontFamily: 'sans-serif' as const },
   loader: { padding: '100px 20px', textAlign: 'center' as const },
-  searchInput: { width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #bbb', fontSize: '16px', backgroundColor: '#fff', color: '#000', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', outlineColor: '#2e7d32' },
+  searchInput: { width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #bbb', fontSize: '16px', backgroundColor: '#fff', color: '#000', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', outlineColor: '#eecb33' },
   tableWrapper: { background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', overflow: 'hidden' },
   table: { width: '100%', borderCollapse: 'collapse' as const },
   th: { padding: '12px', background: '#f8f9fa', borderBottom: '1px solid #eee', color: '#333', fontSize: '11px', textTransform: 'uppercase' as const, fontWeight: 'bold' as const },
@@ -280,7 +280,7 @@ const styles = {
   inlineInput: { width: '70px', padding: '8px', borderRadius: '4px', border: '1px solid #bbb', fontSize: '14px', color: '#000', fontWeight: 'bold' as const },
   inlineSelect: { padding: '8px', borderRadius: '4px', border: '1px solid #bbb', fontSize: '14px', backgroundColor: '#fff', color: '#000', fontWeight: 'bold' as const, cursor: 'pointer' as const },
   balanceContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px' },
-  walletBtn: { background: '#e8f5e9', border: '1px solid #2e7d32', color: '#2e7d32', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' as const, fontSize: '12px', fontWeight: 'bold' as const },
+  walletBtn: { background: '#f5f5e8', border: '1px solid #eecb33', color: '#eecb33', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' as const, fontSize: '12px', fontWeight: 'bold' as const },
   modalOverlay: { position: 'fixed' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
   modalContent: { background: 'white', padding: '25px', borderRadius: '12px', width: '400px', maxWidth: '90%' },
   balanceDisplay: { background: '#f9f9f9', padding: '15px', borderRadius: '8px', textAlign: 'center' as const, border: '1px solid #ddd', marginBottom: '15px' },

@@ -98,11 +98,11 @@ export default function AccountPage() {
         {user?.role !== 'admin' && (
           <div style={styles.earningsBox}>
             <div style={{ flex: 1 }}>
-              <label style={{ ...styles.label, color: '#2e7d32' }}>Clubhouse Credit</label>
+              <label style={{ ...styles.label, color: '#eecb33' }}>Clubhouse Credit</label>
               <p style={styles.earningsValue}>${Number(earnings || 0).toFixed(2)}</p>
             </div>
             <div style={{ textAlign: 'right' }}>
-               <span style={{ fontSize: '10px', color: '#2e7d32', fontWeight: 'bold' }}>SEASON TOTAL</span>
+               <span style={{ fontSize: '10px', color: '#eecb33', fontWeight: 'bold' }}>SEASON TOTAL</span>
             </div>
           </div>
         )}
@@ -143,7 +143,7 @@ export default function AccountPage() {
           <>
             <div style={styles.handicapBox}>
               <div style={{ flex: 1 }}>
-                <label style={{ ...styles.label, color: '#2e7d32' }}>Official Handicap Index</label>
+                <label style={{ ...styles.label, color: '#eecb33' }}>Official Handicap Index</label>
                 <p style={styles.handicapValue}>{user?.handicap_index ?? '0.0'}</p>
               </div>
             </div>
@@ -184,13 +184,13 @@ const styles = {
   earningsBox: {
     display: 'flex',
     alignItems: 'center',
-    background: '#e8f5e9',
+    background: '#f5f5e8',
     padding: '15px',
     borderRadius: '8px',
-    border: '1px solid #2e7d32',
+    border: '1px solid #eecb33',
     marginBottom: '20px'
   },
-  earningsValue: { fontSize: '28px', fontWeight: 'bold' as const, color: '#2e7d32', margin: 0 },
+  earningsValue: { fontSize: '28px', fontWeight: 'bold' as const, color: '#eecb33', margin: 0 },
   infoGroup: { marginBottom: '20px' },
   label: { fontSize: '11px', fontWeight: 'bold' as const, color: '#888', textTransform: 'uppercase' as const, letterSpacing: '0.5px' },
   value: { fontSize: '16px', color: '#000', marginTop: '5px', fontWeight: 'bold' as const },
@@ -199,7 +199,7 @@ const styles = {
     padding: '10px',
     fontSize: '16px',
     borderRadius: '4px',
-    border: '2px solid #2e7d32',
+    border: '2px solid #eecb33',
     marginTop: '5px',
     boxSizing: 'border-box' as const,
     color: '#000',
@@ -210,17 +210,17 @@ const styles = {
   handicapBox: { 
     display: 'flex', 
     alignItems: 'center', 
-    background: '#f0f7f0', 
+    background: '#f5f5e8', 
     padding: '15px', 
     borderRadius: '8px', 
-    border: '1px solid #c8e6c9',
+    border: '1px solid #e3dfa3',
     marginTop: '10px'
   },
-  handicapValue: { fontSize: '28px', fontWeight: 'bold' as const, color: '#1b5e20', margin: 0 },
+  handicapValue: { fontSize: '28px', fontWeight: 'bold' as const, color: '#eecb33', margin: 0 },
   disclaimer: { fontSize: '11px', color: '#999', fontStyle: 'italic' as const, marginTop: '8px', textAlign: 'center' as const },
   buttonRow: { display: 'flex', gap: '10px', marginTop: '25px' },
   editBtn: { flex: 1, padding: '12px', background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: '6px', fontWeight: 'bold' as const, cursor: 'pointer' },
   logoutBtn: { flex: 1, padding: '12px', background: '#f8d7da', color: '#721c24', border: '1px solid #f5c6cb', borderRadius: '6px', fontWeight: 'bold' as const, cursor: 'pointer' },
-  saveBtn: { flex: 2, padding: '12px', background: '#2e7d32', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold' as const, cursor: 'pointer' },
+  saveBtn: { flex: 2, padding: '12px', background: '#eecb33', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold' as const, cursor: 'pointer' },
   cancelBtn: { flex: 1, padding: '12px', background: '#eee', color: '#666', border: 'none', borderRadius: '6px', fontWeight: 'bold' as const, cursor: 'pointer' }
 }

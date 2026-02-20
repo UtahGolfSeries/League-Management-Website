@@ -5,20 +5,21 @@ import { useAuth } from "../context/AuthContext"
 import { usePathname } from 'next/navigation'
 
 export default function Header() {
-  const { user, logout } = useAuth()
+  // Pull courseName from the Auth Context
+  const { user, logout, courseName } = useAuth() 
   const pathname = usePathname()
 
   const isAdmin = user?.role === 'admin'
   const isPlayer = user && user.role !== 'admin'
   
-  // Helper to check if a link is active
   const isActive = (path: string) => pathname === path
 
   return (
     <nav style={styles.nav}>
       <div style={styles.logoContainer}>
         <Link href="/" style={styles.logoText}>
-          UTAH GOLF SERIES
+          {/* DYNAMIC COURSE NAME HERE */}
+          {courseName ? courseName.toUpperCase() : "GOLF LEAGUE"}
         </Link>
         {isAdmin && (
           <span style={styles.adminBadge}>Admin</span>
@@ -30,7 +31,6 @@ export default function Header() {
         
         {user ? (
           <>
-            {/* ADMIN ONLY LINKS - Now styled as regular links */}
             {isAdmin && (
               <>
                 <Link href="/standings" style={isActive('/standings') ? styles.activeLink : styles.link}>Standings</Link>
@@ -41,7 +41,6 @@ export default function Header() {
               </>
             )}
 
-            {/* PLAYER ONLY LINKS */}
             {isPlayer && (
               <>
                 <Link href="/standings" style={isActive('/standings') ? styles.activeLink : styles.link}>Standings</Link>
@@ -73,7 +72,7 @@ const styles = {
     padding: '0 2rem',
     backgroundColor: '#1a1a1a',
     color: 'white',
-    borderBottom: '3px solid #2e7d32',
+    borderBottom: '3px solid #eecb33',
     position: 'sticky' as const,
     top: 0,
     zIndex: 1000,
@@ -91,8 +90,8 @@ const styles = {
     letterSpacing: '1px' 
   },
   adminBadge: {
-    backgroundColor: '#2e7d32',
-    color: 'white',
+    backgroundColor: '#eecb33',
+    color: 'black',
     fontSize: '10px',
     fontWeight: 'bold' as const,
     padding: '2px 6px',
@@ -112,7 +111,7 @@ const styles = {
     textDecoration: 'none',
     fontSize: '14px',
     fontWeight: 'bold' as const,
-    borderBottom: '2px solid #2e7d32',
+    borderBottom: '2px solid #eecb33',
     paddingBottom: '5px'
   },
   logoutBtn: { 
@@ -125,7 +124,7 @@ const styles = {
     fontSize: '12px'
   },
   signUpBtn: {
-    backgroundColor: '#2e7d32', 
+    backgroundColor: '#eecb33', 
     color: 'white', 
     padding: '10px 18px',
     borderRadius: '8px', 

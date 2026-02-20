@@ -50,12 +50,12 @@ export default function MemberSchedule() {
             <div key={wk.id} style={{
               ...styles.weekCard,
               opacity: isPast ? 0.6 : 1,
-              borderLeft: isPast ? '4px solid #ccc' : '4px solid #2e7d32',
+              borderLeft: isPast ? '4px solid #ccc' : '4px solid #eecb33',
               backgroundColor: isPast ? '#fcfcfc' : '#fff'
             }}>
               {/* Date Box */}
               <div style={styles.dateBox}>
-                <span style={{...styles.dateText, color: isPast ? '#888' : '#2e7d32'}}>
+                <span style={{...styles.dateText, color: isPast ? '#888' : '#eecb33'}}>
                   {formatDate(wk.week_date)}
                 </span>
                 <span style={styles.weekLabel}>WEEK {wk.week_number}</span>
@@ -112,5 +112,5 @@ const styles = {
   courseDetails: { fontSize: '13px', color: '#666' },
   statusZone: { textAlign: 'right' as const },
   pastBadge: { fontSize: '10px', background: '#eee', color: '#999', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' as const, textTransform: 'uppercase' as const },
-  upcomingBadge: { fontSize: '10px', background: '#e8f5e9', color: '#2e7d32', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' as const, textTransform: 'uppercase' as const }
+  upcomingBadge: { fontSize: '10px', background: '#f5f3e8', color: '#eecb33', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' as const, textTransform: 'uppercase' as const }
 }

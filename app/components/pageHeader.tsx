@@ -36,6 +36,6 @@ const styles = {
   },
   headerInfo: { display: 'flex', flexDirection: 'column' as const },
   title: { margin: 0, fontSize: '22px', color: '#fff', fontWeight: 'bold' as const },
-  subtitle: { margin: 0, fontSize: '10px', color: '#4caf50', fontWeight: 'bold' as const, textTransform: 'uppercase' as const, letterSpacing: '1px', marginTop: '4px' },
+  subtitle: { margin: 0, fontSize: '10px', color: '#eecb33', fontWeight: 'bold' as const, textTransform: 'uppercase' as const, letterSpacing: '1px', marginTop: '4px' },
   rightContainer: { display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end' }
 }

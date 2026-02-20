@@ -375,7 +375,7 @@ export default function TournamentOps() {
                         <td style={styles.td}>
                           {m.weekScore ? (
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ position: 'absolute', left: '5px', fontWeight: 'bold', color: '#2e7d32', fontSize: '12px' }}>$</span>
+                              <span style={{ position: 'absolute', left: '5px', fontWeight: 'bold', color: '#eecb33', fontSize: '12px' }}>$</span>
                               <input 
                                 id={`win-${m.weekScore.id}`}
                                 key={`${m.id}-${viewingWeek}`} 
@@ -436,7 +436,7 @@ export default function TournamentOps() {
             <div style={styles.manualScoreGrid}>
               {(roundSettings.holes === 18 || roundSettings.side === 'Front') && (
                 <div style={{marginBottom: '20px'}}>
-                  <p style={{fontSize: '11px', fontWeight: 'bold', margin: '0 0 5px 0', textTransform: 'uppercase', color: '#2e7d32'}}>Front Nine</p>
+                  <p style={{fontSize: '11px', fontWeight: 'bold', margin: '0 0 5px 0', textTransform: 'uppercase', color: '#eecb33'}}>Front Nine</p>
                   <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
                     {new Array(9).fill(0).map((_, i) => (
                       <div key={i}>
@@ -449,7 +449,7 @@ export default function TournamentOps() {
               )}
               {(roundSettings.holes === 18 || roundSettings.side === 'Back') && (
                 <div>
-                  <p style={{fontSize: '11px', fontWeight: 'bold', margin: '0 0 5px 0', textTransform: 'uppercase', color: '#2e7d32'}}>Back Nine</p>
+                  <p style={{fontSize: '11px', fontWeight: 'bold', margin: '0 0 5px 0', textTransform: 'uppercase', color: '#eecb33'}}>Back Nine</p>
                   <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
                     {new Array(9).fill(0).map((_, i) => (
                       <div key={i+9}>
@@ -496,8 +496,8 @@ const styles: { [key: string]: React.CSSProperties } = {
   loader: { padding: '100px 20px', textAlign: 'center' },
   adminControlBar: { display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' },
   selectorLabel: { fontSize: '9px', color: '#999', textTransform: 'uppercase', marginBottom: '4px' },
-  searchInput: { width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #bbb', fontSize: '16px', color: '#000', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', outlineColor: '#2e7d32', marginBottom: '20px' },
-  newRoundBtn: { background: '#2e7d32', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' },
+  searchInput: { width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #bbb', fontSize: '16px', color: '#000', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', outlineColor: '#eecb33', marginBottom: '20px' },
+  newRoundBtn: { background: '#eecb33', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' },
   flightSection: { marginBottom: '40px' },
   flightHeader: { background: '#1a1a1a', padding: '10px 15px', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   tableWrapper: { background: '#fff', borderRadius: '0 0 8px 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', overflow: 'hidden' },
@@ -506,17 +506,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   td: { padding: '12px', borderBottom: '1px solid #eee', fontSize: '13px', verticalAlign: 'middle', whiteSpace: 'nowrap' },
   tr: { borderBottom: '1px solid #eee' },
   uncheckedBtn: { padding: '6px 12px', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', color: '#000', width: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  checkedBtn: { padding: '6px 12px', background: '#d4edda', border: '1px solid #c3e6cb', color: '#155724', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', width: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  checkedBtn: { padding: '6px 12px', background: '#f5f5e8', border: '1px solid #f5f5e8', color: '#b0951e', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', width: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   badgeDone: { background: '#d1ecf1', color: '#0c5460', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' },
   badgePendingState: { background: '#fff3e0', color: '#ef6c00', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', border: '1px solid #ffe0b2' },
   badgeVerify: { background: '#e1f5fe', color: '#0288d1', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', border: '1px solid #b3e5fc' },
-  badgeActive: { color: '#2e7d32', fontSize: '11px', fontWeight: 'bold' },
+  badgeActive: { color: '#eecb33', fontSize: '11px', fontWeight: 'bold' },
   resetBtn: { padding: '6px 10px', background: '#fff', border: '1px solid #dc3545', color: '#dc3545', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' },
-  manualEntryBtn: { padding: '6px 10px', background: '#e8f5e9', border: '1px solid #2e7d32', color: '#2e7d32', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', width: '70px' },
+  manualEntryBtn: { padding: '6px 10px', background: '#f5f5e8', border: '1px solid #eecb33', color: '#eecb33', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', width: '70px' },
   badgeFinished: { padding: '6px 12px', background: '#e9ecef', color: '#000', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', border: '1px solid #ccc'},
   weekSelect: { padding: '8px 12px', borderRadius: '6px', border: '1px solid #444', backgroundColor: '#333', fontSize: '14px', fontWeight: 'bold' as const, color: '#fff', outline: 'none' },
-  netScoreBtn: { background: 'none', border: 'none', color: '#2e7d32', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline', fontSize: '14px' },
-  expandedRow: { backgroundColor: '#f1f8e9', padding: '15px' },
+  netScoreBtn: { background: 'none', border: 'none', color: '#eecb33', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline', fontSize: '14px' },
+  expandedRow: { backgroundColor: '#f5f4e8', padding: '15px' },
   miniScorecard: { display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '5px' },
   holeBox: { background: '#fff', border: '1px solid #bbb', padding: '4px 6px', borderRadius: '4px', textAlign: 'center', minWidth: '40px' },
   pairingSelect: { width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #bbb', fontSize: '11px', backgroundColor: '#fff', color: '#000', cursor: 'pointer' },
@@ -527,9 +527,9 @@ const styles: { [key: string]: React.CSSProperties } = {
   manualInput: { width: '45px', padding: '10px 0', textAlign: 'center', border: '1px solid #bbb', borderRadius: '4px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#fff', color: '#000' },
   modalActions: { display: 'flex', gap: '10px', marginTop: '20px' },
   cancelBtn: { flex: 1, padding: '12px', background: '#eee', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#000' },
-  confirmBtn: { flex: 2, padding: '12px', background: '#2e7d32', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
+  confirmBtn: { flex: 2, padding: '12px', background: '#eecb33', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
   field: { marginBottom: '15px' },
   label: { fontSize: '12px', fontWeight: 'bold', marginBottom: '5px', display: 'block' },
   select: { width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #bbb', backgroundColor: '#fff', color: '#000' },
-  tableWinningsInput: { width: '90px', padding: '6px 6px 6px 15px', borderRadius: '4px', border: '1px solid #c8e6c9', fontSize: '13px', fontWeight: 'bold', color: '#000', outline: 'none', backgroundColor: '#f9f9f9', textAlign: 'right' }
+  tableWinningsInput: { width: '90px', padding: '6px 6px 6px 15px', borderRadius: '4px', border: '1px solid #f5f5e8', fontSize: '13px', fontWeight: 'bold', color: '#000', outline: 'none', backgroundColor: '#f9f9f9', textAlign: 'right' }
 };

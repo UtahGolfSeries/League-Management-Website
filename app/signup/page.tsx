@@ -130,10 +130,10 @@ const styles = {
   inputGroup: { marginBottom: '20px' },
   label: { fontSize: '10px', fontWeight: 'bold' as const, color: '#aaa', textTransform: 'uppercase' as const, letterSpacing: '1px', display: 'block', marginBottom: '8px' },
   optional: { color: '#bbb', fontWeight: 'normal' as const, textTransform: 'none' as const },
-  input: { width: '100%', padding: '12px', fontSize: '15px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' as const, color: '#000', outlineColor: '#2e7d32', backgroundColor: '#fdfdfd' },
-  signupBtn: { width: '100%', padding: '14px', background: '#2e7d32', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' as const, fontSize: '16px', cursor: 'pointer' as const, marginTop: '10px' },
+  input: { width: '100%', padding: '12px', fontSize: '15px', borderRadius: '8px', border: '1px solid #ddd', boxSizing: 'border-box' as const, color: '#000', outlineColor: '#eecb33', backgroundColor: '#fdfdfd' },
+  signupBtn: { width: '100%', padding: '14px', background: '#eecb33', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' as const, fontSize: '16px', cursor: 'pointer' as const, marginTop: '10px' },
   errorText: { color: '#d32f2f', fontSize: '13px', textAlign: 'center' as const, marginBottom: '15px' },
   footer: { marginTop: '25px', textAlign: 'center' as const },
   footerText: { fontSize: '14px', color: '#666' },
-  link: { color: '#2e7d32', fontWeight: 'bold' as const, textDecoration: 'none' }
+  link: { color: '#eecb33', fontWeight: 'bold' as const, textDecoration: 'none' }
 }

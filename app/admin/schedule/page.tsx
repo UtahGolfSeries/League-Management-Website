@@ -146,7 +146,7 @@ const styles = {
   weekNum: { background: '#000', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' as const, minWidth: '45px', textAlign: 'center' as const, marginTop: '5px' },
   displayRow: { display: 'flex', flex: 1, justifyContent: 'space-between', alignItems: 'center' },
   info: { flex: 1 },
-  dateLabel: { fontSize: '12px', fontWeight: 'bold' as const, color: '#2e7d32', textTransform: 'uppercase' as const, marginBottom: '2px' },
+  dateLabel: { fontSize: '12px', fontWeight: 'bold' as const, color: '#eecb33', textTransform: 'uppercase' as const, marginBottom: '2px' },
   gameTitle: { fontWeight: '900' as const, fontSize: '18px', color: '#000' },
   details: { fontSize: '13px', color: '#444', fontWeight: 'bold' as const },
   editBtn: { background: '#f5f5f5', border: '1px solid #ddd', color: '#000', padding: '8px 20px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' as const },
@@ -161,6 +161,6 @@ const styles = {
   input: { padding: '10px', borderRadius: '6px', border: '1px solid #000', fontSize: '13px', color: '#000', backgroundColor: '#fff', width: '100%' },
   
   actions: { display: 'flex', gap: '10px', borderTop: '1px solid #eee', paddingTop: '15px', justifyContent: 'flex-end' },
-  saveBtn: { background: '#2e7d32', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' as const, fontSize: '13px' },
+  saveBtn: { background: '#eecb33', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' as const, fontSize: '13px' },
   cancelBtn: { background: '#fff', border: '1px solid #000', color: '#000', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' as const, fontSize: '13px' }
 }

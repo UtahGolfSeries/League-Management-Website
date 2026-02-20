@@ -206,7 +206,7 @@ export default function EnterScore() {
       <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
         {availablePlayers.map(p => (
           <button key={p.id} style={{...styles.btn, background: '#fff', color: '#000', border: '1px solid #ddd', textAlign: 'left', display: 'flex', justifyContent: 'space-between'}} onClick={() => handleCreatePairing(p.id)}>
-            <span>{p.display_name}</span><span style={{color: '#2e7d32'}}>Select →</span>
+            <span>{p.display_name}</span><span style={{color: '#eecb33'}}>Select →</span>
           </button>
         ))}
       </div>
@@ -223,8 +223,8 @@ export default function EnterScore() {
       <div style={styles.summary}>
         <h2 style={{margin: '0 0 10px 0', fontSize: '18px'}}>Your Round Summary</h2>
         <div style={styles.summaryRow}><strong>Gross:</strong> <span>{myScorecard.score}</span></div>
-        <div style={styles.summaryRow}><strong>Net:</strong> <span style={{color: '#2e7d32', fontWeight: 'bold'}}>{myScorecard.net_score}</span></div>
-        <p style={{fontSize: '11px', color: myScorecard.is_verified ? '#2e7d32' : '#d32f2f', marginTop: '10px', fontWeight: 'bold'}}>
+        <div style={styles.summaryRow}><strong>Net:</strong> <span style={{color: '#eecb33', fontWeight: 'bold'}}>{myScorecard.net_score}</span></div>
+        <p style={{fontSize: '11px', color: myScorecard.is_verified ? '#eecb33' : '#d32f2f', marginTop: '10px', fontWeight: 'bold'}}>
           {myScorecard.is_verified ? "✅ Verified by Group" : "Awaiting Verification"}
         </p>
       </div>
@@ -233,10 +233,10 @@ export default function EnterScore() {
       {groupMembers.map(partnerMember => {
         const card = partnerScorecards.find(c => c.member_id === partnerMember.id);
         return (
-          <div key={partnerMember.id} style={{...styles.summary, border: card?.is_verified ? '1px solid #ddd' : '1px solid #2e7d32', marginBottom: '15px'}}>
+          <div key={partnerMember.id} style={{...styles.summary, border: card?.is_verified ? '1px solid #ddd' : '1px solid #eecb33', marginBottom: '15px'}}>
             <h3 style={{margin: '0 0 10px 0', fontSize: '14px', color: '#000'}}>{partnerMember.display_name}</h3>
             {card ? (
-              card.is_verified ? <p style={{color: '#2e7d32', textAlign: 'center', fontWeight: 'bold'}}>✅ Card Attested</p> :
+              card.is_verified ? <p style={{color: '#eecb33', textAlign: 'center', fontWeight: 'bold'}}>✅ Card Attested</p> :
               <>
                 <div style={styles.scoreRow}>
                   {activeIndices.map(idx => (
@@ -322,9 +322,9 @@ export default function EnterScore() {
           <div style={styles.summaryRow}><span>Back 9 (In):</span> <span>{inTotal}</span></div>
         )}
         <div style={styles.summaryRow}><span>Season Index:</span> <span>{currentHandicap}</span></div>
-        <div style={{...styles.summaryRow, color: '#2e7d32', fontWeight: 'bold'}}><span>Round Handicap:</span> <span>{effectiveHandicap}</span></div>
+        <div style={{...styles.summaryRow, color: '#eecb33', fontWeight: 'bold'}}><span>Round Handicap:</span> <span>{effectiveHandicap}</span></div>
         <div style={{...styles.summaryRow, marginTop: '10px', borderTop: '1px solid #ddd', paddingTop: '10px'}}><strong>Total Gross:</strong> <strong>{totalGross}</strong></div>
-        <div style={{...styles.summaryRow, fontSize: '18px', color: '#2e7d32'}}><strong>Total Net:</strong> <strong>{calculateNet()}</strong></div>
+        <div style={{...styles.summaryRow, fontSize: '18px', color: '#eecb33'}}><strong>Total Net:</strong> <strong>{calculateNet()}</strong></div>
       </div>
       <button onClick={submitScore} style={styles.btn}>Submit Round</button>
     </div>
@@ -338,9 +338,9 @@ const styles = {
   label: { fontSize: '11px', fontWeight: 'bold' as const, color: '#000' },
   parLabel: { fontSize: '10px', color: '#444', fontWeight: 'bold' as const },
   hcpLabel: { fontSize: '9px', color: '#666' },
-  popDots: { fontSize: '14px', color: '#2e7d32', height: '14px', lineHeight: '14px' },
+  popDots: { fontSize: '14px', color: '#eecb33', height: '14px', lineHeight: '14px' },
   input: { width: '100%', border: 'none', borderBottom: '2px solid #2e7d32', textAlign: 'center' as const, fontSize: '18px', padding: '5px 0', outline: 'none', color: '#000', fontWeight: 'bold' },
   summary: { background: '#f9f9f9', padding: '15px', borderRadius: '8px', color: '#222', margin: '20px 0' },
   summaryRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '14px' },
-  btn: { width: '100%', padding: '15px', background: '#2e7d32', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold' as const, cursor: 'pointer' }
+  btn: { width: '100%', padding: '15px', background: '#eecb33', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold' as const, cursor: 'pointer' }
 }
