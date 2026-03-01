@@ -17,7 +17,7 @@ export default function RosterManagement() {
 
   // Wallet State
   const [selectedMember, setSelectedMember] = useState<any>(null)
-  const [rawAmount, setRawAmount] = useState('0') // Stores the digits only
+  const [rawAmount, setRawAmount] = useState('0') 
   const [transactionDesc, setTransactionDesc] = useState('')
   const [modalBalance, setModalBalance] = useState(0)
   const [transactionHistory, setTransactionHistory] = useState<any[]>([])
@@ -29,25 +29,63 @@ export default function RosterManagement() {
   }, [user, authLoading, router])
 
   const fetchRoster = async () => {
+    // FIX: Use the UUID (auth_user_id) instead of the numeric id
+    const adminUuid = user?.auth_user_id || user?.id;
+    
+    // Safety check: if the ID is just a small number, it's not the UUID we need
+    if (!adminUuid || String(adminUuid).length < 10) return;
+
     setLoading(true)
     try {
-      const { data: roster } = await supabase
-        .from('member')
-        .select('*')
-        .neq('role', 'admin')
-        .order('display_name', { ascending: true })
+      // 1. Get the current admin's course_id using their UUID
+      const { data: adminMembership, error: adminError } = await supabase
+        .from('memberships')
+        .select('course_id')
+        .eq('user_id', adminUuid)
+        .maybeSingle();
 
+      if (adminError || !adminMembership) {
+        console.error("Admin association not found. Check if the admin is assigned to a course.");
+        setLoading(false);
+        return;
+      }
+
+      const activeCourseId = adminMembership.course_id;
+
+      // 2. Fetch members linked to this course
+      const { data: rosterRecords, error: rosterError } = await supabase
+        .from('memberships')
+        .select(`
+          role,
+          member:user_id (
+            id,
+            auth_user_id,
+            display_name,
+            handicap_index,
+            flight,
+            email
+          )
+        `)
+        .eq('course_id', activeCourseId)
+        .neq('role', 'admin'); 
+
+      if (rosterError) throw rosterError;
+
+      // 3. Flatten the data. Handle potential array returns from joins.
+      const roster = rosterRecords
+        ?.map(r => Array.isArray(r.member) ? r.member[0] : r.member)
+        .filter(Boolean) || [];
+      
       const { data: allScores } = await supabase.from('scorecards').select('member_id, winnings')
       const { data: allTrans } = await supabase.from('clubhouse_transactions').select('member_id, amount')
 
-      if (roster) {
-        const processed = roster.map(m => {
-          const totalWins = allScores?.filter(s => s.member_id === m.id).reduce((sum, s) => sum + (Number(s.winnings) || 0), 0) || 0
-          const totalSpent = allTrans?.filter(t => t.member_id === m.id).reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0
-          return { ...m, balance: totalWins + totalSpent }
-        })
-        setMembers(processed)
-      }
+      const processed = roster.map((m: any) => {
+        const totalWins = allScores?.filter(s => s.member_id === m.id).reduce((sum, s) => sum + (Number(s.winnings) || 0), 0) || 0
+        const totalSpent = allTrans?.filter(t => t.member_id === m.id).reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0
+        return { ...m, balance: totalWins + totalSpent }
+      })
+      
+      setMembers(processed)
     } catch (err) {
       console.error("Fetch error:", err)
     } finally {
@@ -56,44 +94,36 @@ export default function RosterManagement() {
   }
 
   useEffect(() => {
-    fetchRoster()
-  }, [])
+    if (user) fetchRoster()
+  }, [user])
 
+  // --- EXISTING FUNCTIONS (KEEPING AS IS) ---
   const handleUpdate = async (id: string, updates: any) => {
     setUpdatingId(id)
     const { error } = await supabase.from('member').update(updates).eq('id', id)
     if (error) alert("Update failed: " + error.message)
     setUpdatingId(null)
+    fetchRoster() // Refresh after update
   }
 
   const openWallet = async (member: any) => {
     setSelectedMember(member)
     setModalBalance(member.balance)
-    setRawAmount('0') // Reset amount on open
-    
+    setRawAmount('0')
     const { data: history, error } = await supabase
       .from('clubhouse_transactions')
       .select('*')
       .eq('member_id', member.id)
       .order('created_at', { ascending: false })
-
     if (!error) setTransactionHistory(history || [])
   }
 
-  // NEW: Currency Mask Logic
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Remove all non-digits
     const digits = e.target.value.replace(/\D/g, '');
-    // If user deletes everything, reset to 0
-    if (digits === '') {
-      setRawAmount('0');
-      return;
-    }
-    // Prevent leading zeros unless the total is 0
+    if (digits === '') { setRawAmount('0'); return; }
     setRawAmount(parseInt(digits).toString());
   };
 
-  // Format raw digits (cents) to dollars for display
   const formatCurrency = (amount: string) => {
     const totalCents = parseInt(amount);
     return (totalCents / 100).toFixed(2);
@@ -102,18 +132,14 @@ export default function RosterManagement() {
   const handleCharge = async () => {
     const finalAmount = parseFloat(formatCurrency(rawAmount));
     if (finalAmount <= 0 || !selectedMember) return;
-
     const { error } = await supabase.from('clubhouse_transactions').insert({
       member_id: selectedMember.id,
       amount: -Math.abs(finalAmount),
       description: transactionDesc || "Clubhouse Purchase"
     })
-
     if (!error) {
       alert("Charge successful!");
-      setSelectedMember(null);
-      setRawAmount('0');
-      setTransactionDesc('');
+      setSelectedMember(null); setRawAmount('0'); setTransactionDesc('');
       fetchRoster();
     }
   }
@@ -123,17 +149,14 @@ export default function RosterManagement() {
     const { error } = await supabase.from('clubhouse_transactions').delete().eq('id', transId)
     if (!error) {
       const { data: history } = await supabase
-        .from('clubhouse_transactions')
-        .select('*')
-        .eq('member_id', selectedMember.id)
-        .order('created_at', { ascending: false })
+        .from('clubhouse_transactions').select('*').eq('member_id', selectedMember.id).order('created_at', { ascending: false })
       setTransactionHistory(history || [])
       fetchRoster()
     }
   }
 
   const filteredMembers = members.filter(m => 
-    m.display_name.toLowerCase().includes(searchTerm.toLowerCase())
+    (m.display_name || "").toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   if (loading || authLoading) return <div style={styles.loader}>Loading Roster...</div>
@@ -162,60 +185,67 @@ export default function RosterManagement() {
             </tr>
           </thead>
           <tbody>
-            {filteredMembers.map((m) => (
-              <tr key={m.id} style={styles.tr}>
-                <td style={styles.td}><strong style={{ color: '#000' }}>{m.display_name}</strong></td>
-                <td style={styles.td}>
-                  <input 
-                    type="number" step="0.1" defaultValue={m.handicap_index}
-                    onBlur={(e) => handleUpdate(m.id, { handicap_index: parseFloat(e.target.value) })}
-                    style={styles.inlineInput}
-                  />
-                </td>
-                <td style={styles.td}>
-                  <select 
-                    defaultValue={m.flight || 'A'} 
-                    onChange={(e) => handleUpdate(m.id, { flight: e.target.value })}
-                    style={styles.inlineSelect}
-                  >
-                    <option value="A">Flight A</option>
-                    <option value="B">Flight B</option>
-                    <option value="C">Flight C</option>
-                    <option value="D">Flight D</option>
-                  </select>
-                </td>
-                <td style={{ ...styles.td, textAlign: 'center' }}>
-                  <div style={styles.balanceContainer}>
-                    <span style={{ fontSize: '15px', fontWeight: 'bold', color: m.balance < 0 ? '#d32f2f' : '#eecb33', minWidth: '70px' }}>
-                      ${(m.balance || 0).toFixed(2)}
-                    </span>
-                    <button onClick={() => openWallet(m)} style={styles.walletBtn}>Transaction</button>
-                  </div>
-                </td>
-                <td style={{ ...styles.td, textAlign: 'center' }}>
-                  {updatingId === m.id ? 
-                    <span style={{color: '#666', fontSize: '11px'}}>Saving...</span> : 
-                    <span style={{color: '#eecb33', fontSize: '11px', fontWeight: 'bold'}}>Saved</span>
-                  }
-                </td>
-              </tr>
-            ))}
+            {filteredMembers.length === 0 ? (
+                <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                        No players found for this course.
+                    </td>
+                </tr>
+            ) : (
+                filteredMembers.map((m) => (
+                    <tr key={m.id} style={styles.tr}>
+                        <td style={styles.td}><strong style={{ color: '#000' }}>{m.display_name}</strong></td>
+                        <td style={styles.td}>
+                        <input 
+                            type="number" step="0.1" defaultValue={m.handicap_index}
+                            onBlur={(e) => handleUpdate(m.id, { handicap_index: parseFloat(e.target.value) })}
+                            style={styles.inlineInput}
+                        />
+                        </td>
+                        <td style={styles.td}>
+                        <select 
+                            defaultValue={m.flight || 'A'} 
+                            onChange={(e) => handleUpdate(m.id, { flight: e.target.value })}
+                            style={styles.inlineSelect}
+                        >
+                            <option value="A">Flight A</option>
+                            <option value="B">Flight B</option>
+                            <option value="C">Flight C</option>
+                            <option value="D">Flight D</option>
+                        </select>
+                        </td>
+                        <td style={{ ...styles.td, textAlign: 'center' }}>
+                        <div style={styles.balanceContainer}>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: m.balance < 0 ? '#d32f2f' : '#eecb33', minWidth: '70px' }}>
+                            ${(m.balance || 0).toFixed(2)}
+                            </span>
+                            <button onClick={() => openWallet(m)} style={styles.walletBtn}>Transaction</button>
+                        </div>
+                        </td>
+                        <td style={{ ...styles.td, textAlign: 'center' }}>
+                        {updatingId === m.id ? 
+                            <span style={{color: '#666', fontSize: '11px'}}>Saving...</span> : 
+                            <span style={{color: '#eecb33', fontSize: '11px', fontWeight: 'bold'}}>Saved</span>
+                        }
+                        </td>
+                    </tr>
+                ))
+            )}
           </tbody>
         </table>
       </div>
 
+      {/* WALLET MODAL (STAYS EXACTLY THE SAME) */}
       {selectedMember && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalContent}>
             <h2 style={{color: '#000', marginTop: 0, fontSize: '20px'}}>Wallet: {selectedMember.display_name}</h2>
-            
             <div style={styles.balanceDisplay}>
               <label style={styles.label}>Current Balance</label>
               <p style={{fontSize: '28px', fontWeight: 'bold', color: '#eecb33', margin: '5px 0 0 0'}}>
                 ${(members.find(m => m.id === selectedMember.id)?.balance || 0).toFixed(2)}
               </p>
             </div>
-
             <div style={styles.historyContainer}>
               <label style={styles.label}>Recent Transactions</label>
               <div style={styles.historyList}>
@@ -237,26 +267,20 @@ export default function RosterManagement() {
                 )}
               </div>
             </div>
-
             <div style={{marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px'}}>
               <label style={styles.label}>New Clubhouse Charge</label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '10px', top: '10px', fontWeight: 'bold', color: '#000' }}>$</span>
                 <input 
-                  type="text" 
-                  inputMode="numeric"
-                  value={formatCurrency(rawAmount)}
-                  onChange={handleAmountChange}
+                  type="text" inputMode="numeric" value={formatCurrency(rawAmount)} onChange={handleAmountChange}
                   style={{...styles.modalInput, paddingLeft: '25px', fontWeight: 'bold', fontSize: '18px'}} 
                 />
               </div>
               <input 
-                type="text" placeholder="Description (Optional)" value={transactionDesc}
-                onChange={(e) => setTransactionDesc(e.target.value)}
+                type="text" placeholder="Description (Optional)" value={transactionDesc} onChange={(e) => setTransactionDesc(e.target.value)}
                 style={{...styles.modalInput, marginTop: '10px'}} 
               />
             </div>
-
             <div style={styles.buttonRow}>
               <button onClick={() => setSelectedMember(null)} style={styles.cancelBtn}>Close</button>
               <button onClick={handleCharge} style={styles.chargeBtn}>Apply Charge</button>

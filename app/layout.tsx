@@ -1,5 +1,6 @@
 import { AuthProvider } from "./context/AuthContext"
-import Header from "./components/header" // 1. Import your new Header
+import Header from "./components/header" 
+import Footer from "./components/footer" // 1. Added Footer import
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Utah Golf Series", // 2. Updated title for your project
+  title: "Utah Golf Series", 
   description: "Official Member Portal",
 };
 
@@ -26,12 +27,25 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body 
+        className={`${geistSans.variable} ${geistMono.variable}`}
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          minHeight: '100vh', // Sets the height to the full viewport
+          margin: 0,
+          boxSizing: 'border-box'
+        }}
+      >
         <AuthProvider>
           <Header /> 
-          <main>
+          
+          {/* flex: 1 makes the main content expand to fill available space */}
+          <main style={{ flex: 1, width: '100%' }}>
             {children}
           </main>
+
+          <Footer /> 
         </AuthProvider>
       </body>
     </html>

@@ -295,7 +295,7 @@ export default function TournamentOps() {
         subtitle={`VIEWING: WEEK ${viewingWeek} ${viewingWeek !== currentWeek ? "(READ-ONLY ARCHIVE)" : ""}`}
         rightElement={
           <>
-            <label style={styles.selectorLabel}>Jump to:</label>
+            <label style={styles.selectorLabel}>Viewing:</label>
             <select value={viewingWeek} onChange={(e) => setViewingWeek(Number(e.target.value))} style={styles.weekSelect}>
               {Array.from({ length: currentWeek }, (_, i) => i + 1).map(w => (
                 <option key={w} value={w}>Week {w}</option>

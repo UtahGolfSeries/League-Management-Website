@@ -19,44 +19,46 @@ export default function AccountPage() {
   // State for total winnings
   const [earnings, setEarnings] = useState(0)
 
+  // Helper to determine if the user is an administrative role
+  const isAdministrative = user?.role === 'admin' || user?.role === 'superadmin'
+
   useEffect(() => {
     if (user) {
       setDisplayName(user.display_name || '')
       setPhoneNumber(user.phone_number || '')
       
-      const fetchMemberDataAndEarnings = async () => {
-  try {
-    const { data: memberProfile } = await supabase
-      .from('member')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .single();
+      // Only fetch earnings if the user is a standard member
+      if (!isAdministrative) {
+        const fetchMemberDataAndEarnings = async () => {
+          try {
+            const { data: memberProfile } = await supabase
+              .from('member')
+              .select('id')
+              .eq('auth_user_id', user.id)
+              .single();
 
-    if (memberProfile) {
-      // 1. Fetch Winnings from Scorecards
-      const { data: scores } = await supabase
-        .from('scorecards')
-        .select('winnings')
-        .eq('member_id', memberProfile.id);
+            if (memberProfile) {
+              const { data: scores } = await supabase
+                .from('scorecards')
+                .select('winnings')
+                .eq('member_id', memberProfile.id);
 
-      // 2. Fetch Spending from Transactions
-      const { data: trans } = await supabase
-        .from('clubhouse_transactions')
-        .select('amount')
-        .eq('member_id', memberProfile.id);
+              const { data: trans } = await supabase
+                .from('clubhouse_transactions')
+                .select('amount')
+                .eq('member_id', memberProfile.id);
 
-      const totalWinnings = scores?.reduce((sum, s) => sum + (Number(s.winnings) || 0), 0) || 0;
-      const totalSpent = trans?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0;
+              const totalWinnings = scores?.reduce((sum, s) => sum + (Number(s.winnings) || 0), 0) || 0;
+              const totalSpent = trans?.reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0;
 
-      // Current Balance = Winnings (positive) + Transactions (negative)
-      setEarnings(totalWinnings + totalSpent);
+              setEarnings(totalWinnings + totalSpent);
+            }
+          } catch (err) { console.error(err); }
+        };
+        fetchMemberDataAndEarnings();
+      }
     }
-  } catch (err) { console.error(err); }
-};
-
-      fetchMemberDataAndEarnings();
-    }
-  }, [user])
+  }, [user, isAdministrative])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -89,13 +91,13 @@ export default function AccountPage() {
     <div style={styles.container}>
       <PageHeader 
         title="My Profile" 
-        subtitle={user?.role === 'admin' ? "ADMINISTRATOR ACCOUNT" : "MEMBER ACCOUNT SETTINGS"}
+        subtitle={isAdministrative ? `${user?.role?.toUpperCase()} ACCOUNT` : "MEMBER ACCOUNT SETTINGS"}
       />
 
       <div style={styles.card}>
         
-        {/* CLUBHOUSE CREDIT BOX */}
-        {user?.role !== 'admin' && (
+        {/* CLUBHOUSE CREDIT BOX - Hidden for Admin/SuperAdmin */}
+        {!isAdministrative && (
           <div style={styles.earningsBox}>
             <div style={{ flex: 1 }}>
               <label style={{ ...styles.label, color: '#eecb33' }}>Clubhouse Credit</label>
@@ -139,7 +141,8 @@ export default function AccountPage() {
           <p style={styles.value}>{user?.email}</p>
         </div>
 
-        {user?.role !== 'admin' && (
+        {/* HANDICAP BOX - Hidden for Admin/SuperAdmin */}
+        {!isAdministrative && (
           <>
             <div style={styles.handicapBox}>
               <div style={{ flex: 1 }}>
