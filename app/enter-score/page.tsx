@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
-import PageHeader from '../components/pageHeader' // Import shared component
+import PageHeader from '../components/pageHeader'
+import { calculateTournamentResult } from '../utils/golfLogic'
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
@@ -23,92 +24,110 @@ export default function EnterScore() {
   const [isAllowed, setIsAllowed] = useState(true)
   const [statusMessage, setStatusMessage] = useState('')
 
-  const [groupMembers, setGroupMembers] = useState<any[]>([])
-  const [partnerScorecards, setPartnerScorecards] = useState<any[]>([])
-  const [availablePlayers, setAvailablePlayers] = useState<any[]>([])
-  const [isPairingLoading, setIsPairingLoading] = useState(false)
+  const [unverifiedPool, setUnverifiedPool] = useState<any[]>([])
   const [isVerifying, setIsVerifying] = useState(false)
 
+  // 1. AUTO-RESTORE DRAFT FROM LOCAL STORAGE
   useEffect(() => {
-    if (!authLoading && !user) {
-      window.location.href = '/'
+    if (leagueSettings?.current_week) {
+      const savedDraft = localStorage.getItem(`draft_week_${leagueSettings.current_week}`);
+      if (savedDraft) {
+        try {
+          setGrossScores(JSON.parse(savedDraft));
+        } catch (e) {
+          console.error("Failed to parse draft scores");
+        }
+      }
     }
-  }, [user, authLoading])
-  
+  }, [leagueSettings]);
+
   const checkAccessAndFetchData = async () => {
-    if (!user) return;
+    const userUuid = user?.auth_user_id || user?.id;
+    if (!userUuid || typeof userUuid !== 'string' || userUuid.length < 20) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { data: settingsData } = await supabase.from('league_settings').select('*').eq('id', 1).single()
+      // Fetch settings with game_type
+      const { data: settingsData } = await supabase.from('league_settings').select('*, game_types(name, scoring_format)').eq('id', 1).single()
       if (settingsData) setLeagueSettings(settingsData)
 
-      const { data: courseData } = await supabase.from('courses').select('*').limit(1).single()
-      if (courseData) setCourse(courseData)
+      const { data: membership, error: memError } = await supabase
+        .from('memberships')
+        .select('course_id, handicap_index, is_checked_in, has_submitted_current_round, courses(*)')
+        .eq('user_id', userUuid)
+        .maybeSingle();
+      
+      if (memError) throw memError;
+      if (!membership) {
+        setStatusMessage("No clubhouse membership found.");
+        setIsAllowed(false);
+        setLoading(false);
+        return;
+      }
+
+      setCourse(membership.courses)
 
       const { data: userData } = await supabase
         .from('member')
-        .select('id, handicap_index, display_name, has_submitted_current_round, is_checked_in') 
-        .eq('auth_user_id', user.id)
+        .select('id, display_name') 
+        .eq('auth_user_id', userUuid)
         .single();
 
       if (userData) {
         setMemberId(userData.id)
-        setCurrentHandicap(userData.handicap_index ?? 0)
-        setGolferName(userData.display_name ?? 'Anonymous Golfer')
+        setGolferName(userData.display_name ?? 'Anonymous')
+        setCurrentHandicap(Number(membership.handicap_index) || 0)
         
-        if (!userData.is_checked_in) {
+        if (!membership.is_checked_in) {
           setIsAllowed(false)
           setStatusMessage("Please check in at the front desk to unlock your scorecard.")
         } else {
           setIsAllowed(true)
         }
 
-        if (userData.has_submitted_current_round) {
+        if (membership.has_submitted_current_round) {
           const { data: mine } = await supabase
             .from('scorecards')
             .select('*')
             .eq('member_id', userData.id)
+            .eq('course_id', membership.course_id)
             .eq('week_number', settingsData.current_week)
             .maybeSingle()
-          setMyScorecard(mine)
-        }
-
-        const { data: pairings } = await supabase
-          .from('weekly_pairings')
-          .select('player_1_id, player_2_id')
-          .eq('week_number', settingsData.current_week)
-          .or(`player_1_id.eq.${userData.id},player_2_id.eq.${userData.id}`);
-
-        if (pairings && pairings.length > 0) {
-          const partnerIds = Array.from(new Set(pairings.flatMap(p => [p.player_1_id, p.player_2_id])))
-            .filter(id => id !== userData.id);
-
-          const { data: pInfos } = await supabase.from('member').select('id, display_name').in('id', partnerIds)
-          setGroupMembers(pInfos || [])
-
-          const { data: pCards } = await supabase
-            .from('scorecards')
-            .select('*, member!member_id(display_name)') 
-            .in('member_id', partnerIds)
-            .eq('week_number', settingsData.current_week);
           
-          setPartnerScorecards(pCards || [])
+          setMyScorecard(mine)
+
+          const { data: pool } = await supabase
+            .from('scorecards')
+            .select('*, member:member_id(display_name)')
+            .eq('course_id', membership.course_id)
+            .eq('week_number', settingsData.current_week)
+            .eq('is_verified', false)
+            .neq('member_id', userData.id);
+          
+          setUnverifiedPool(pool || [])
         } else {
-          const { data: potential } = await supabase.from('member').select('id, display_name').eq('is_checked_in', true).neq('id', userData.id).neq('role', 'admin')
-          setAvailablePlayers(potential || [])
+          setMyScorecard(null);
         }
       }
-    } catch (err) {
-      console.error("Initialization error:", err)
+    } catch (err: any) {
+      console.error("Initialization error:", err.message)
+      setStatusMessage("Sync Error: " + err.message)
     } finally {
       setLoading(false)
     }
   }
 
+  // 2. REAL-TIME SUBSCRIPTION FOR POOL UPDATES
   useEffect(() => {
     if (!memberId || !leagueSettings) return;
     const channel = supabase
-      .channel('live_tournament_hub')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scorecards' }, () => {
+      .channel('member_live_updates')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'scorecards' }, () => {
+          checkAccessAndFetchData();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scorecards' }, () => {
           checkAccessAndFetchData();
       })
       .subscribe();
@@ -116,22 +135,24 @@ export default function EnterScore() {
   }, [memberId, leagueSettings]);
 
   useEffect(() => {
-    checkAccessAndFetchData()
-  }, [user])
+    if (!authLoading && user) checkAccessAndFetchData()
+    else if (!authLoading && !user) router.push('/')
+  }, [user, authLoading])
 
-  const handleCreatePairing = async (p2Id: number) => {
-    if (!memberId || !leagueSettings) return
-    setIsPairingLoading(true)
-    try {
-      await supabase.from('weekly_pairings').insert({ week_number: leagueSettings.current_week, player_1_id: memberId, player_2_id: p2Id })
-      await checkAccessAndFetchData()
-    } catch (err: any) { alert("Pairing failed.") } finally { setIsPairingLoading(false) }
-  }
-
+  // 3. AUTO-SAVE DRAFT ON CHANGE
   const handleScoreChange = (index: number, val: string) => {
     const newScores = [...grossScores]
-    newScores[index] = parseInt(val) || 0
+    const numericVal = parseInt(val) || 0
+    newScores[index] = numericVal
     setGrossScores(newScores)
+    
+    // Immediate persist to local storage
+    if (leagueSettings?.current_week) {
+      localStorage.setItem(
+        `draft_week_${leagueSettings.current_week}`, 
+        JSON.stringify(newScores)
+      );
+    }
   }
 
   const isNineHoles = leagueSettings?.holes_to_play === 9
@@ -140,16 +161,36 @@ export default function EnterScore() {
   const showBack9 = leagueSettings?.holes_to_play === 18 || leagueSettings?.side_to_play === 'Back'
   
   const activeIndices = leagueSettings?.holes_to_play === 18 
-    ? [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17] 
+    ? Array.from({length: 18}, (_, i) => i) 
     : (leagueSettings?.side_to_play === 'Back' ? [9,10,11,12,13,14,15,16,17] : [0,1,2,3,4,5,6,7,8])
 
   const outTotal = grossScores.slice(0, 9).reduce((a, b) => a + b, 0)
   const inTotal = grossScores.slice(9, 18).reduce((a, b) => a + b, 0)
   const totalGross = activeIndices.reduce((sum, idx) => sum + grossScores[idx], 0)
 
+  // Helper for inline calculations (Net or Chicago)
+  const getLiveResult = () => {
+    if (!course || !leagueSettings) return 0;
+    
+    // Mock a scorecard object for the utility function
+    const tempCard = {
+      hole_scores: grossScores,
+      handicap_index: effectiveHandicap,
+      holes_played: leagueSettings.holes_to_play,
+      net_score: calculateNet() // fallback
+    };
+
+    return calculateTournamentResult(
+      tempCard, 
+      null, // Partner not supported in live grid yet
+      leagueSettings.game_types?.name || 'Stroke Play', 
+      course
+    );
+  }
+
   const calculateNet = () => {
     return activeIndices.reduce((sum, i) => {
-      if (!course) return sum
+      if (!course?.handicap_values) return sum
       const hcpVal = course.handicap_values[i]
       let p = 0
       if (isNineHoles) {
@@ -162,185 +203,145 @@ export default function EnterScore() {
   }
 
   const submitScore = async () => {
-    if (!course || !memberId || !leagueSettings) return
-    if (activeIndices.some(idx => !grossScores[idx])) return alert("Missing score for active holes.");
+    const userUuid = user?.auth_user_id || user?.id;
+    if (!course || !memberId || !leagueSettings || !userUuid) return
+    if (activeIndices.some(idx => !grossScores[idx])) return alert("Please enter scores for all holes.");
 
     try {
       const { error } = await supabase.from('scorecards').insert({
-        member_id: memberId, week_number: leagueSettings.current_week, score: totalGross, net_score: calculateNet(),
-        hole_scores: grossScores, holes_played: leagueSettings.holes_to_play, tee_played: leagueSettings.tee_color,
+        member_id: memberId, course_id: course.id, week_number: leagueSettings.current_week, 
+        score: totalGross, net_score: calculateNet(), hole_scores: grossScores, 
+        holes_played: leagueSettings.holes_to_play, tee_played: leagueSettings.tee_color,
         side_played: leagueSettings.side_to_play, is_verified: false
       })
       if (error) throw error
-      await supabase.from('member').update({ has_submitted_current_round: true }).eq('id', memberId)
-      setLoading(true); await checkAccessAndFetchData();
+      
+      await supabase.from('memberships').update({ has_submitted_current_round: true }).match({ user_id: userUuid, course_id: course.id })
+      
+      // 4. CLEAR DRAFT STORAGE ON SUCCESSFUL SUBMIT
+      localStorage.removeItem(`draft_week_${leagueSettings.current_week}`);
+      
+      await checkAccessAndFetchData();
     } catch (err: any) { alert(err.message) }
   }
 
-  const handleVerifyPartner = async (cardId: number) => {
+  const handleVerifyFromPool = async (cardId: number) => {
     setIsVerifying(true);
     try {
-      const { error } = await supabase.from('scorecards').update({ is_verified: true, verified_by: memberId }).eq('id', cardId);
+      const { error } = await supabase
+        .from('scorecards')
+        .update({ is_verified: true, verified_by: memberId })
+        .eq('id', cardId);
+      
       if (error) throw error;
-      alert("Card attested!");
-      if (partnerScorecards.filter(c => !c.is_verified).length <= 1) router.push('/standings');
+      alert("Attestation complete!");
+      await checkAccessAndFetchData();
     } catch (err: any) { alert(err.message); } finally { setIsVerifying(false); }
   }
 
-  if (loading || authLoading) return <div style={{padding: '20px'}}>Loading Tournament Data...</div>
+  if (loading || authLoading) return <div style={{padding: '40px', textAlign: 'center'}}>Syncing with Clubhouse...</div>
 
-  if (!isAllowed) return (
-    <div style={styles.container}>
-      <PageHeader title="Scorecard Locked" subtitle="Check-in Required" />
-      <div style={{...styles.summary, textAlign: 'center' as const, marginTop: '20px'}}>
-        <p>{statusMessage}</p>
-        <button onClick={() => router.push('/account')} style={{...styles.btn, marginTop: '20px'}}>My Account</button>
-      </div>
-    </div>
-  )
-
-  if (groupMembers.length === 0) return (
-    <div style={styles.container}>
-      <PageHeader title="Select Partner" subtitle="Pairing Required" />
-      <p style={{textAlign: 'center', fontSize: '14px', color: '#666', marginBottom: '25px'}}>Select the member you are playing with.</p>
-      <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-        {availablePlayers.map(p => (
-          <button key={p.id} style={{...styles.btn, background: '#fff', color: '#000', border: '1px solid #ddd', textAlign: 'left', display: 'flex', justifyContent: 'space-between'}} onClick={() => handleCreatePairing(p.id)}>
-            <span>{p.display_name}</span><span style={{color: '#eecb33'}}>Select →</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-
-  if (myScorecard) return (
-    <div style={styles.container}>
-      <PageHeader 
-        title={course?.name || "Tournament"} 
-        subtitle="ROUND SUMMARY & ATTESTATION" 
-      />
-      
-      <div style={styles.summary}>
-        <h2 style={{margin: '0 0 10px 0', fontSize: '18px'}}>Your Round Summary</h2>
-        <div style={styles.summaryRow}><strong>Gross:</strong> <span>{myScorecard.score}</span></div>
-        <div style={styles.summaryRow}><strong>Net:</strong> <span style={{color: '#eecb33', fontWeight: 'bold'}}>{myScorecard.net_score}</span></div>
-        <p style={{fontSize: '11px', color: myScorecard.is_verified ? '#eecb33' : '#d32f2f', marginTop: '10px', fontWeight: 'bold'}}>
-          {myScorecard.is_verified ? "✅ Verified by Group" : "Awaiting Verification"}
-        </p>
-      </div>
-      <hr style={{margin: '25px 0', border: '0', borderTop: '1px solid #ddd'}} />
-      <h2 style={{fontSize: '16px', marginBottom: '15px'}}>Review Group Scores</h2>
-      {groupMembers.map(partnerMember => {
-        const card = partnerScorecards.find(c => c.member_id === partnerMember.id);
-        return (
-          <div key={partnerMember.id} style={{...styles.summary, border: card?.is_verified ? '1px solid #ddd' : '1px solid #eecb33', marginBottom: '15px'}}>
-            <h3 style={{margin: '0 0 10px 0', fontSize: '14px', color: '#000'}}>{partnerMember.display_name}</h3>
-            {card ? (
-              card.is_verified ? <p style={{color: '#eecb33', textAlign: 'center', fontWeight: 'bold'}}>✅ Card Attested</p> :
-              <>
-                <div style={styles.scoreRow}>
-                  {activeIndices.map(idx => (
-                    <div key={idx} style={styles.holeBox}>
-                      <div style={styles.label}>H{idx+1}</div>
-                      <div style={{fontSize: '18px', fontWeight: 'bold', color: '#000'}}>{card.hole_scores[idx]}</div>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={() => handleVerifyPartner(card.id)} disabled={isVerifying} style={{...styles.btn, padding: '10px'}}>Verify {partnerMember.display_name}</button>
-              </>
-            ) : <p style={{fontSize: '12px', color: '#888', textAlign: 'center'}}>Still playing...</p>}
-          </div>
-        );
-      })}
-    </div>
-  )
+  const isChicago = leagueSettings?.game_types?.name === 'Chicago';
 
   return (
     <div style={styles.container}>
-      <PageHeader 
-        title={course?.name || "Tournament"} 
-        subtitle={`WEEK ${leagueSettings?.current_week} • ${leagueSettings?.holes_to_play} HOLES • ${leagueSettings?.tee_color} TEES`}
-      />
-      
-      {/* Darkened "Playing with" line */}
-      <div style={{background: '#f0f7f0', padding: '10px', borderRadius: '8px', border: '1px solid #c8e6c9', textAlign: 'center', marginBottom: '20px', fontSize: '14px', color: '#000', fontWeight: 'bold'}}>
-        Playing with: {groupMembers.map(m => m.display_name).join(', ')}
-      </div>
-      
-      {showFront9 && (
+      {!isAllowed ? (
         <>
-          <h3 style={{marginBottom: '10px'}}>Front 9 (Out: {outTotal})</h3>
-          <div style={styles.scoreRow}>
-            {course?.par_values.slice(0, 9).map((par: number, i: number) => (
-              <div key={i} style={styles.holeBox}>
-                <div style={styles.label}>H{i+1}</div>
-                <div style={styles.parLabel}>P{par}</div>
-                <div style={styles.hcpLabel}>HCP {course?.handicap_values[i]}</div>
-                <div style={styles.popDots}>
-                  {(() => {
-                    const sideRank = isNineHoles ? Math.ceil(course.handicap_values[i] / 2) : course.handicap_values[i]
-                    const dots = []; if (effectiveHandicap >= sideRank) dots.push('•'); if (effectiveHandicap >= sideRank + (isNineHoles ? 9 : 18)) dots.push('•');
-                    return dots.join('')
-                  })()}
-                </div>
-                <input type="number" inputMode="numeric" style={styles.input} onChange={(e) => handleScoreChange(i, e.target.value)} />
-              </div>
-            ))}
+          <PageHeader title="Scorecard Locked" subtitle="Check-in Required" />
+          <div style={styles.summary}>
+            <p style={{textAlign: 'center', color: '#000'}}>{statusMessage}</p>
+            <button onClick={() => router.push('/account')} style={{...styles.btn, marginTop: '15px'}}>My Account</button>
           </div>
         </>
-      )}
-
-      {showBack9 && (
+      ) : myScorecard ? (
         <>
-          <h3 style={{marginBottom: '10px'}}>Back 9 (In: {inTotal})</h3>
-          <div style={styles.scoreRow}>
-            {course?.par_values.slice(9, 18).map((par: number, i: number) => (
-              <div key={i+9} style={styles.holeBox}>
-                <div style={styles.label}>H{i+10}</div>
-                <div style={styles.parLabel}>P{par}</div>
-                <div style={styles.hcpLabel}>HCP {course?.handicap_values[i+9]}</div>
-                <div style={styles.popDots}>
-                  {(() => {
-                    const sideRank = isNineHoles ? Math.ceil(course.handicap_values[i+9] / 2) : course.handicap_values[i+9]
-                    const dots = []; if (effectiveHandicap >= sideRank) dots.push('•'); if (effectiveHandicap >= sideRank + (isNineHoles ? 9 : 18)) dots.push('•');
-                    return dots.join('')
-                  })()}
-                </div>
-                <input type="number" inputMode="numeric" style={styles.input} onChange={(e) => handleScoreChange(i+9, e.target.value)} />
-              </div>
-            ))}
+          <PageHeader title={course?.name || "Tournament"} subtitle={`ROUND SUMMARY: ${leagueSettings?.game_types?.name || 'Stroke Play'}`} />
+          <div style={styles.summary}>
+            <div style={styles.summaryRow}><strong>Gross:</strong> <span>{myScorecard.score}</span></div>
+            <div style={styles.summaryRow}>
+                <strong>{isChicago ? 'Total Points:' : 'Net Score:'}</strong> 
+                <span style={{color: '#eecb33', fontWeight: 'bold'}}>
+                    {calculateTournamentResult(myScorecard, null, leagueSettings?.game_types?.name, course)}
+                </span>
+            </div>
+            <p style={{fontSize: '11px', color: myScorecard.is_verified ? '#2e7d32' : '#d32f2f', marginTop: '10px', fontWeight: 'bold', textAlign: 'center'}}>
+              {myScorecard.is_verified ? "✅ Verified" : "⏳ Awaiting Peer Verification"}
+            </p>
           </div>
+          <hr style={{margin: '25px 0', border: '0', borderTop: '1px solid #ddd'}} />
+          <h2 style={{fontSize: '16px', marginBottom: '15px', color: '#000'}}>Verification Pool</h2>
+          {unverifiedPool.length === 0 ? (
+            <p style={{fontSize: '12px', color: '#888', textAlign: 'center'}}>No cards waiting in the pool.</p>
+          ) : (
+            unverifiedPool.map(card => (
+              <div key={card.id} style={{...styles.summary, border: '1px solid #eecb33', marginBottom: '15px'}}>
+                <h3 style={{fontSize: '14px', marginBottom: '10px', color: '#000'}}>{card.member?.display_name}</h3>
+                <div style={styles.scoreRow}>
+                    {activeIndices.slice(0, 5).map(idx => (
+                        <div key={idx} style={styles.holeBox}><div style={styles.label}>H{idx+1}</div><span style={{color:'#000', fontWeight:'bold'}}>{card.hole_scores[idx]}</span></div>
+                    ))}
+                    <div style={styles.holeBox}>...</div>
+                </div>
+                <button onClick={() => handleVerifyFromPool(card.id)} disabled={isVerifying} style={{...styles.btn, padding: '10px', marginTop: '10px', fontSize: '13px'}}>Verify {card.member?.display_name}</button>
+              </div>
+            ))
+          )}
+        </>
+      ) : (
+        <>
+          <PageHeader title={course?.name || "Scorecard"} subtitle={`${leagueSettings?.game_types?.name || 'Stroke Play'} • WEEK ${leagueSettings?.current_week}`} />
+          {showFront9 && (
+            <div style={{marginBottom: '20px'}}>
+              <h3 style={{fontSize: '14px', marginBottom: '10px', color: '#000'}}>Front 9 (Out: {outTotal})</h3>
+              <div style={styles.scoreRow}>
+                {course?.par_values?.slice(0, 9).map((par: number, i: number) => (
+                  <div key={i} style={styles.holeBox}>
+                    <div style={styles.label}>H{i+1}</div>
+                    <div style={styles.parLabel}>P{par}</div>
+                    <input type="number" inputMode="numeric" value={grossScores[i] || ''} style={styles.input} onChange={(e) => handleScoreChange(i, e.target.value)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showBack9 && (
+            <div style={{marginBottom: '20px'}}>
+              <h3 style={{fontSize: '14px', marginBottom: '10px', color: '#000'}}>Back 9 (In: {inTotal})</h3>
+              <div style={styles.scoreRow}>
+                {course?.par_values?.slice(9, 18).map((par: number, i: number) => (
+                  <div key={i+9} style={styles.holeBox}>
+                    <div style={styles.label}>H{i+10}</div>
+                    <div style={styles.parLabel}>P{par}</div>
+                    <input type="number" inputMode="numeric" value={grossScores[i+9] || ''} style={styles.input} onChange={(e) => handleScoreChange(i+9, e.target.value)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={styles.summary}>
+            <div style={styles.summaryRow}><span>Gross:</span> <strong>{totalGross}</strong></div>
+            <div style={{...styles.summaryRow, color: '#eecb33', fontSize: '18px'}}>
+                <span>{isChicago ? 'Total Points:' : 'Total Net:'}</span> 
+                <strong>{getLiveResult()}</strong>
+            </div>
+          </div>
+          <button onClick={submitScore} style={styles.btn}>Submit Round</button>
         </>
       )}
-
-      <div style={styles.summary}>
-        <div style={styles.summaryRow}><strong>Golfer:</strong> <span>{golferName}</span></div>
-        {showFront9 && (
-          <div style={styles.summaryRow}><span>Front 9 (Out):</span> <span>{outTotal}</span></div>
-        )}
-        {showBack9 && (
-          <div style={styles.summaryRow}><span>Back 9 (In):</span> <span>{inTotal}</span></div>
-        )}
-        <div style={styles.summaryRow}><span>Season Index:</span> <span>{currentHandicap}</span></div>
-        <div style={{...styles.summaryRow, color: '#eecb33', fontWeight: 'bold'}}><span>Round Handicap:</span> <span>{effectiveHandicap}</span></div>
-        <div style={{...styles.summaryRow, marginTop: '10px', borderTop: '1px solid #ddd', paddingTop: '10px'}}><strong>Total Gross:</strong> <strong>{totalGross}</strong></div>
-        <div style={{...styles.summaryRow, fontSize: '18px', color: '#eecb33'}}><strong>Total Net:</strong> <strong>{calculateNet()}</strong></div>
-      </div>
-      <button onClick={submitScore} style={styles.btn}>Submit Round</button>
     </div>
   )
 }
 
 const styles = {
   container: { padding: '20px', maxWidth: '500px', margin: '0 auto', fontFamily: 'sans-serif' as const },
-  scoreRow: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginBottom: '20px' },
+  scoreRow: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' },
   holeBox: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', border: '1px solid #ddd', padding: '5px', borderRadius: '4px', background: '#fff' },
-  label: { fontSize: '11px', fontWeight: 'bold' as const, color: '#000' },
-  parLabel: { fontSize: '10px', color: '#444', fontWeight: 'bold' as const },
-  hcpLabel: { fontSize: '9px', color: '#666' },
-  popDots: { fontSize: '14px', color: '#eecb33', height: '14px', lineHeight: '14px' },
-  input: { width: '100%', border: 'none', borderBottom: '2px solid #2e7d32', textAlign: 'center' as const, fontSize: '18px', padding: '5px 0', outline: 'none', color: '#000', fontWeight: 'bold' },
-  summary: { background: '#f9f9f9', padding: '15px', borderRadius: '8px', color: '#222', margin: '20px 0' },
-  summaryRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '14px' },
-  btn: { width: '100%', padding: '15px', background: '#eecb33', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold' as const, cursor: 'pointer' }
+  label: { fontSize: '10px', color: '#666' },
+  parLabel: { fontSize: '10px', fontWeight: 'bold' as const, color: '#000' },
+  input: { width: '100%', border: 'none', borderBottom: '2px solid #2e7d32', textAlign: 'center' as const, fontSize: '18px', fontWeight: 'bold' as const, outline: 'none', color: '#000' },
+  summary: { background: '#f9f9f9', padding: '15px', borderRadius: '8px', margin: '20px 0', border: '1px solid #eee' },
+  summaryRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: '#000' },
+  btn: { width: '100%', padding: '15px', background: '#eecb33', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' as const, cursor: 'pointer' }
 }

@@ -14,6 +14,7 @@ export default function RosterManagement() {
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [activeCourseId, setActiveCourseId] = useState<string | null>(null)
 
   // Wallet State
   const [selectedMember, setSelectedMember] = useState<any>(null)
@@ -23,67 +24,68 @@ export default function RosterManagement() {
   const [transactionHistory, setTransactionHistory] = useState<any[]>([])
 
   useEffect(() => {
-    if (!authLoading && user?.role !== 'admin') {
+    if (!authLoading && user?.role !== 'admin' && user?.role !== 'superadmin') {
       router.replace('/')
     }
   }, [user, authLoading, router])
 
   const fetchRoster = async () => {
-    // FIX: Use the UUID (auth_user_id) instead of the numeric id
     const adminUuid = user?.auth_user_id || user?.id;
-    
-    // Safety check: if the ID is just a small number, it's not the UUID we need
     if (!adminUuid || String(adminUuid).length < 10) return;
 
     setLoading(true)
     try {
-      // 1. Get the current admin's course_id using their UUID
-      const { data: adminMembership, error: adminError } = await supabase
+      // 1. Get the current admin's course_id
+      const { data: adminMembership } = await supabase
         .from('memberships')
         .select('course_id')
         .eq('user_id', adminUuid)
         .maybeSingle();
 
-      if (adminError || !adminMembership) {
-        console.error("Admin association not found. Check if the admin is assigned to a course.");
+      if (!adminMembership) {
         setLoading(false);
         return;
       }
 
-      const activeCourseId = adminMembership.course_id;
+      setActiveCourseId(adminMembership.course_id);
 
-      // 2. Fetch members linked to this course
+      // 2. Fetch roster from memberships to get local handicap/flight
       const { data: rosterRecords, error: rosterError } = await supabase
         .from('memberships')
         .select(`
+          user_id,
+          handicap_index,
+          flight,
           role,
           member:user_id (
             id,
-            auth_user_id,
             display_name,
-            handicap_index,
-            flight,
             email
           )
         `)
-        .eq('course_id', activeCourseId)
+        .eq('course_id', adminMembership.course_id)
         .neq('role', 'admin'); 
 
       if (rosterError) throw rosterError;
 
-      // 3. Flatten the data. Handle potential array returns from joins.
-      const roster = rosterRecords
-        ?.map(r => Array.isArray(r.member) ? r.member[0] : r.member)
-        .filter(Boolean) || [];
-      
-      const { data: allScores } = await supabase.from('scorecards').select('member_id, winnings')
+      const { data: allScores } = await supabase.from('scorecards').select('member_id, winnings').eq('course_id', adminMembership.course_id)
       const { data: allTrans } = await supabase.from('clubhouse_transactions').select('member_id, amount')
 
-      const processed = roster.map((m: any) => {
+      const processed = rosterRecords.map((r: any) => {
+        const m = Array.isArray(r.member) ? r.member[0] : r.member;
+        if (!m) return null;
+
         const totalWins = allScores?.filter(s => s.member_id === m.id).reduce((sum, s) => sum + (Number(s.winnings) || 0), 0) || 0
         const totalSpent = allTrans?.filter(t => t.member_id === m.id).reduce((sum, t) => sum + (Number(t.amount) || 0), 0) || 0
-        return { ...m, balance: totalWins + totalSpent }
-      })
+        
+        return { 
+          ...m, 
+          auth_user_id: r.user_id, // Keep UUID for updates
+          handicap_index: r.handicap_index, 
+          flight: r.flight,
+          balance: totalWins + totalSpent 
+        }
+      }).filter(Boolean);
       
       setMembers(processed)
     } catch (err) {
@@ -97,13 +99,23 @@ export default function RosterManagement() {
     if (user) fetchRoster()
   }, [user])
 
-  // --- EXISTING FUNCTIONS (KEEPING AS IS) ---
-  const handleUpdate = async (id: string, updates: any) => {
-    setUpdatingId(id)
-    const { error } = await supabase.from('member').update(updates).eq('id', id)
-    if (error) alert("Update failed: " + error.message)
+  // UPDATED: Now targets 'memberships' table using UUID + CourseID
+  const handleUpdate = async (memberUuid: string, updates: any) => {
+    if (!activeCourseId) return;
+    setUpdatingId(memberUuid)
+    
+    const { error } = await supabase
+      .from('memberships')
+      .update(updates)
+      .match({ user_id: memberUuid, course_id: activeCourseId })
+
+    if (error) {
+        alert("Update failed: " + error.message)
+    } else {
+        // Optimistic UI update or fetch
+        fetchRoster() 
+    }
     setUpdatingId(null)
-    fetchRoster() // Refresh after update
   }
 
   const openWallet = async (member: any) => {
@@ -159,11 +171,11 @@ export default function RosterManagement() {
     (m.display_name || "").toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  if (loading || authLoading) return <div style={styles.loader}>Loading Roster...</div>
+  if (loading || authLoading) return <div style={styles.loader}>Loading Clubhouse Roster...</div>
 
   return (
     <div style={styles.container}>
-      <PageHeader title="Roster Management" subtitle="Manage member accounts and credit balances." />
+      <PageHeader title="Roster Management" subtitle="Manage clubhouse-specific handicaps and flights." />
 
       <div style={{ marginBottom: '20px' }}>
         <input
@@ -193,19 +205,19 @@ export default function RosterManagement() {
                 </tr>
             ) : (
                 filteredMembers.map((m) => (
-                    <tr key={m.id} style={styles.tr}>
+                    <tr key={m.auth_user_id} style={styles.tr}>
                         <td style={styles.td}><strong style={{ color: '#000' }}>{m.display_name}</strong></td>
                         <td style={styles.td}>
                         <input 
                             type="number" step="0.1" defaultValue={m.handicap_index}
-                            onBlur={(e) => handleUpdate(m.id, { handicap_index: parseFloat(e.target.value) })}
+                            onBlur={(e) => handleUpdate(m.auth_user_id, { handicap_index: parseFloat(e.target.value) })}
                             style={styles.inlineInput}
                         />
                         </td>
                         <td style={styles.td}>
                         <select 
                             defaultValue={m.flight || 'A'} 
-                            onChange={(e) => handleUpdate(m.id, { flight: e.target.value })}
+                            onChange={(e) => handleUpdate(m.auth_user_id, { flight: e.target.value })}
                             style={styles.inlineSelect}
                         >
                             <option value="A">Flight A</option>
@@ -223,7 +235,7 @@ export default function RosterManagement() {
                         </div>
                         </td>
                         <td style={{ ...styles.td, textAlign: 'center' }}>
-                        {updatingId === m.id ? 
+                        {updatingId === m.auth_user_id ? 
                             <span style={{color: '#666', fontSize: '11px'}}>Saving...</span> : 
                             <span style={{color: '#eecb33', fontSize: '11px', fontWeight: 'bold'}}>Saved</span>
                         }
@@ -243,7 +255,7 @@ export default function RosterManagement() {
             <div style={styles.balanceDisplay}>
               <label style={styles.label}>Current Balance</label>
               <p style={{fontSize: '28px', fontWeight: 'bold', color: '#eecb33', margin: '5px 0 0 0'}}>
-                ${(members.find(m => m.id === selectedMember.id)?.balance || 0).toFixed(2)}
+                ${(members.find(m => m.auth_user_id === selectedMember.auth_user_id)?.balance || 0).toFixed(2)}
               </p>
             </div>
             <div style={styles.historyContainer}>
